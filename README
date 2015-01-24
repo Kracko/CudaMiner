@@ -1,9 +1,8 @@
 
 IMPORTANT PUBLIC SERVICE ANNOUNCEMENT:
 
-This has recently been ugpraded to use the CUDA 5.5 toolkit.
+This has recently been ugpraded to use the CUDA 6.5 toolkit.
 
-If you keep using CUDA 5.0, you will not see the amazing 30%
-speed gains with David Andersen's new Kepler, Titan kernels.
+Maxwell kernel added.  It's just a straight copy of Titan, but compiled for cuda v5-5.2
 
 Also see README.txt
