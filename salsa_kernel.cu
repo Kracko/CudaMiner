@@ -22,11 +22,13 @@
 
 #include "salsa_kernel.h"
 
+#include "maxwell_kernel.h"
 #include "titan_kernel.h"
 #include "fermi_kernel.h"
 #include "test_kernel.h"
 #include "nv_kernel.h"
 #include "nv_kernel2.h"
+#include "nv_kernel3.h"
 #include "kepler_kernel.h"
 
 #include "miner.h"
@@ -143,6 +145,8 @@ KernelInterface *Best_Kernel_Heuristics(cudaDeviceProp *props)
     if (opt_algo == ALGO_SCRYPT || (opt_algo == ALGO_SCRYPT_JANE && N <= 8192) || opt_algo == ALGO_KECCAK || opt_algo == ALGO_BLAKE)
     {
         // high register count kernels (scrypt, low N-factor scrypt-jane)
+        if (props->major >= 5)
+           kernel = new NV3Kernel();
         if (props->major > 3 || (props->major == 3 && props->minor >= 5))
             kernel = new NV2Kernel(); // we don't want this for Keccak though
         else if (props->major == 3 && props->minor == 0)
@@ -153,7 +157,9 @@ KernelInterface *Best_Kernel_Heuristics(cudaDeviceProp *props)
     else
     {
        // low register count kernels (high N-factor scrypt-jane)
-       if (props->major > 3 || (props->major == 3 && props->minor >= 5))
+       if (props->major >= 5)
+           kernel = new MaxwellKernel();
+       else if (props->major > 3 || (props->major == 3 && props->minor >= 5))
             kernel = new TitanKernel();
         else if (props->major == 3 && props->minor == 0)
             kernel = new KeplerKernel();
@@ -172,7 +178,9 @@ bool validate_config(char *config, int &b, int &w, KernelInterface **kernel = NU
     {
         if (config[0] == 'T' || config[0] == 'K' || config[0] == 'F' || config[0] == 'L' ||
             config[0] == 't' || config[0] == 'k' || config[0] == 'f' ||
-            config[0] == 'Z' || config[0] == 'Y' || config[0] == 'X') {
+            config[0] == 'Z' || config[0] == 'Y' || config[0] == 'X' ||
+            config[0] == 'M' || config[0] == 'm')
+        {
             kernelid = config[0];
             config++;
         }
@@ -185,6 +193,8 @@ bool validate_config(char *config, int &b, int &w, KernelInterface **kernel = NU
         {
             switch (kernelid)
             {
+                case 'M': *kernel = new NV3Kernel(); break;
+                case 'm': *kernel = new MaxwellKernel(); break;
                 case 'T': case 'Z': *kernel = new NV2Kernel(); break;
                 case 't':           *kernel = new TitanKernel(); break;
                 case 'K': case 'Y': *kernel = new NVKernel(); break;
@@ -415,6 +425,10 @@ int find_optimal_blockcount(int thr_id, KernelInterface* &kernel, bool &concurre
                 kernel = new FermiKernel();
             else if (device_config[thr_id][0] == 'f' || device_config[thr_id][0] == 'X')
                 kernel = new TestKernel();
+            else if (device_config[thr_id][0] == 'M')
+                kernel = new NV3Kernel();
+            else if (device_config[thr_id][0] == 'm')
+                kernel = new MaxwellKernel();
         }
         if (kernel == NULL) kernel = Best_Kernel_Heuristics(&props);
     }

@@ -11,7 +11,6 @@
 
 #include <map>
 #include <stdint.h>
-
 #include "salsa_kernel.h"
 #include "miner.h"
 
